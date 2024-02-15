@@ -9,7 +9,7 @@ A small library for evaluating mathematical expressions in strings.
 ```d
     import std.stdio;
     import evalex;
-    void main(){
+    
     string text = "sin(0.5)*2^3-5*4";
         
     auto evaluator = new Eval!double(text);
@@ -17,7 +17,6 @@ A small library for evaluating mathematical expressions in strings.
     auto result = evaluator.result;
 
     writeln(result);
-}
 
 ```
 
