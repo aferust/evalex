@@ -1,0 +1,13 @@
+{
+    "name": "evalex",
+	"version": "0.0.1",
+    "description": "A small library for evaluating mathematical expressions in strings.",
+    "authors": [
+        "Ferhat Kurtulmuş"
+    ],
+    "copyright": "Copyright © 2024, Ferhat Kurtulmuş",
+    "license": "BSL-1.0",
+    "dependencies": {},
+    "sourcePaths": ["source"],
+    "targetType": "library"
+}

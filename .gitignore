@@ -1,0 +1,16 @@
+.dub
+docs.json
+__dummy.html
+docs/
+/evalex
+evalex.so
+evalex.dylib
+evalex.dll
+evalex.a
+evalex.lib
+evalex-test-*
+*.exe
+*.pdb
+*.o
+*.obj
+*.lst
