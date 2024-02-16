@@ -85,4 +85,34 @@ static foreach (T; FloatingPoints) {
         }
     }
 }
+
+// unittest for Exceptions
+unittest {
+    import std.exception : assertThrown;
+    
+    // Test invalid expression
+    assertThrown!ParserException({
+        auto evaluator = new Eval!double("2 + * 3");
+    }());
+
+    // Test undefined function (should throw a LexicalException for now)
+    assertThrown!LexicalException({
+        auto evaluator = new Eval!double("unknown(5)");
+    }());
+
+    // Test mismatched parentheses
+    assertThrown!ParserException({
+        auto evaluator = new Eval!double("(2 + 3");
+    }());
+
+    // Test invalid characters
+    assertThrown!LexicalException({
+        auto evaluator = new Eval!double("2 # 3");
+    }());
+
+    // Test empty expression
+    assertThrown!LexicalException({
+        auto evaluator = new Eval!double("");
+    }());
+}
 ```
