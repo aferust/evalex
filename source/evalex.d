@@ -6,6 +6,7 @@ import std.format, std.conv;
 import std.ascii : isDigit;
 import std.uni : isWhite;
 import std.variant;
+import std.range : empty;
 import std.algorithm.searching : canFind;
 import std.algorithm : startsWith;
 import std.math;
@@ -28,11 +29,36 @@ if (isFloatingPoint!TypeNumber) {
     }
 }
 
+class EvalException : Exception {
+    this(string message) {
+        super(message);
+    }
+}
+
+final class LexicalException : EvalException {
+    this(string message) {
+        super(message);
+    }
+}
+
+final class ParserException : EvalException {
+    this(string message) {
+        super(message);
+    }
+}
+
+final class InterpreterException : EvalException {
+    this(string message) {
+        super(message);
+    }
+}
+
 private:
 
-void writeln_log(T...)(T args){
-    version(LOGGER){
+version(LOGGER){
+    void writeln_log(T...)(T args){
         writeln(args);
+        
     }
 }
 
@@ -100,15 +126,18 @@ final class Lexer(TypeNumber, TokenValue) {
     dstring text;
     size_t pos;
     Nullable!dchar currentChar;
-    Token prevToken;
 
     this(dstring text){
+        if (text.empty) {
+            throw new LexicalException("Empty input text");
+        }
+
         this.text = text;
         currentChar = text[pos];
     }
 
     void error(){
-        throw new Exception("Invalid character");
+        throw new LexicalException("Invalid character '" ~ text[pos].to!string ~ "' in the position " ~ pos.to!string);
     }
 
     void advance(size_t step = 1) {
@@ -137,22 +166,22 @@ final class Lexer(TypeNumber, TokenValue) {
     Token getNextToken(){
         while (!currentChar.isNull) {
 
-            writeln_log("Current character: ", currentChar.get);
+            version(LOGGER) writeln_log("Current character: ", currentChar.get);
 
             if (currentChar.get.isWhite) {
                 // Print skipping whitespace
-                writeln_log("Skipping whitespace...");
+                version(LOGGER) writeln_log("Skipping whitespace...");
                 skipWhitespace();
                 continue;
             }
 
             // Print parsing token
-            writeln_log("Parsing token...");
+            version(LOGGER) writeln_log("Parsing token...");
 
             // Check if currentChar is the beginning of a number
             if (currentChar.get.isDigit) {
                 auto token = new Token(TokenType.NUMBER, TokenValue(getValue()));
-                writeln_log("Parsed token: ", token);
+                version(LOGGER) writeln_log("Parsed token: ", token);
                 return token;
             }
 
@@ -168,113 +197,113 @@ final class Lexer(TypeNumber, TokenValue) {
                         advance(2);
                         return new Token(TokenType.PI, TokenValue("pi"));
                     } else if (text[pos+1..$].startsWith("ow")) {
-                        writeln_log("Parsed token: pow");
+                        version(LOGGER) writeln_log("Parsed token: pow");
                         advance(3);
                         return new Token(TokenType.POW, TokenValue("pow"));
                     }
                     break;
                 case '+':
-                    writeln_log("Parsed token: PLUS");
+                    version(LOGGER) writeln_log("Parsed token: PLUS");
                     advance();
                     return new Token(TokenType.PLUS, TokenValue("+"));
                 case '-':
-                    writeln_log("Parsed token: MINUS");
+                    version(LOGGER) writeln_log("Parsed token: MINUS");
                     advance();
                     return new Token(TokenType.MINUS, TokenValue("-"));
                 case ',':
-                    writeln_log("Parsed token: PARAMSEP");
+                    version(LOGGER) writeln_log("Parsed token: PARAMSEP");
                     advance();
                     return new Token(TokenType.PARAMSEP, TokenValue(","));
                 case '*':
-                    writeln_log("Parsed token: MUL");
+                    version(LOGGER) writeln_log("Parsed token: MUL");
                     advance();
                     return new Token(TokenType.MUL, TokenValue("*"));
                 case '/':
-                    writeln_log("Parsed token: DIV");
+                    version(LOGGER) writeln_log("Parsed token: DIV");
                     advance();
                     return new Token(TokenType.DIV, TokenValue("/"));
                 case '(':
-                    writeln_log("Parsed token: LPAREN");
+                    version(LOGGER) writeln_log("Parsed token: LPAREN");
                     advance();
                     return new Token(TokenType.LPAREN, TokenValue("("));
                 case ')':
-                    writeln_log("Parsed token: RPAREN");
+                    version(LOGGER) writeln_log("Parsed token: RPAREN");
                     advance();
                     return new Token(TokenType.RPAREN, TokenValue(")"));
                 case '^':
-                    writeln_log("Parsed token: EXP");
+                    version(LOGGER) writeln_log("Parsed token: EXP");
                     advance();
                     return new Token(TokenType.EXP, TokenValue("^"));
                 case 'e':
                     if (text[pos+1..$].startsWith("xp2")) {
-                        writeln_log("Parsed token: exp2");
+                        version(LOGGER) writeln_log("Parsed token: exp2");
                         advance(4);
                         return new Token(TokenType.EXP2NAMED, TokenValue("exp2"));
                     }else if (text[pos+1..$].startsWith("xp")) {
-                        writeln_log("Parsed token: exp");
+                        version(LOGGER) writeln_log("Parsed token: exp");
                         advance(3);
                         return new Token(TokenType.EXPNAMED, TokenValue("exp"));
                     } else {
-                        writeln_log("Parsed token: e");
+                        version(LOGGER) writeln_log("Parsed token: e");
                         advance();
                         return new Token(TokenType.EULER, TokenValue("e"));
                     }
                     break;
                 case 's':
                     if (text[pos+1..$].startsWith("in")) {
-                        writeln_log("Parsed token: sin");
+                        version(LOGGER) writeln_log("Parsed token: sin");
                         advance(3);
                         return new Token(TokenType.SIN, TokenValue("sin"));
                     } else if (text[pos+1..$].startsWith("qrt")) {
-                        writeln_log("Parsed token: sqrt");
+                        version(LOGGER) writeln_log("Parsed token: sqrt");
                         advance(4);
                         return new Token(TokenType.SQRT, TokenValue("sqrt"));
                     }
                     break;
                 case 'c':
                     if (text[pos+1..$].startsWith("os")) {
-                        writeln_log("Parsed token: cos");
+                        version(LOGGER) writeln_log("Parsed token: cos");
                         advance(3);
                         return new Token(TokenType.COS, TokenValue("cos"));
                     }
                     break;
                 case 't':
                     if (text[pos+1..$].startsWith("an")) {
-                        writeln_log("Parsed token: tan");
+                        version(LOGGER) writeln_log("Parsed token: tan");
                         advance(3);
                         return new Token(TokenType.TAN, TokenValue("tan"));
                     }
                     break;
                 case 'a':
                     if (text[pos+1..$].startsWith("tan2")) {
-                        writeln_log("Parsed token: atan2");
+                        version(LOGGER) writeln_log("Parsed token: atan2");
                         advance(5);
                         return new Token(TokenType.ATAN2, TokenValue("atan2"));
                     } else if (text[pos+1..$].startsWith("tan")) {
-                        writeln_log("Parsed token: atan");
+                        version(LOGGER) writeln_log("Parsed token: atan");
                         advance(4);
                         return new Token(TokenType.ATAN, TokenValue("atan"));
                     } else if (text[pos+1..$].startsWith("cos")) {
-                        writeln_log("Parsed token: acos");
+                        version(LOGGER) writeln_log("Parsed token: acos");
                         advance(4);
                         return new Token(TokenType.ACOS, TokenValue("acos"));
                     } else if (text[pos+1..$].startsWith("sin")) {
-                        writeln_log("Parsed token: asin");
+                        version(LOGGER) writeln_log("Parsed token: asin");
                         advance(4);
                         return new Token(TokenType.ASIN, TokenValue("asin"));
                     }
                     break;
                 case 'l':
                     if (text[pos+1..$].startsWith("og10")) {
-                        writeln_log("Parsed token: log10");
+                        version(LOGGER) writeln_log("Parsed token: log10");
                         advance(5);
                         return new Token(TokenType.LOG10, TokenValue("log10"));
                     } else if (text[pos+1..$].startsWith("og2")) {
-                        writeln_log("Parsed token: log2");
+                        version(LOGGER) writeln_log("Parsed token: log2");
                         advance(4);
                         return new Token(TokenType.LOG2, TokenValue("log2"));
                     } else if (text[pos+1..$].startsWith("og")) {
-                        writeln_log("Parsed token: log");
+                        version(LOGGER) writeln_log("Parsed token: log");
                         advance(3);
                         return new Token(TokenType.LOG, TokenValue("log"));
                     }
@@ -285,15 +314,13 @@ final class Lexer(TypeNumber, TokenValue) {
         }
         
         // If currentChar is null, return EOF token
-        writeln_log("Parsed token: EOF");
+        version(LOGGER) writeln_log("Parsed token: EOF");
         return new Token(TokenType.EOF, TokenValue(null));
     }
 }
 
 // Define the AST node types
-interface _ASTNode(TypeNumber) {
-    TypeNumber accept(NodeVisitor!TypeNumber visitor);
-}
+interface _ASTNode(TypeNumber) {}
 
 final class BinaryOpNode(TypeNumber, TokenValue) : _ASTNode!TypeNumber {
     alias ASTNode = _ASTNode!TypeNumber;
@@ -310,10 +337,6 @@ final class BinaryOpNode(TypeNumber, TokenValue) : _ASTNode!TypeNumber {
         this.token = op;
         this.right = right;
     }
-
-    TypeNumber accept(NodeVisitor!TypeNumber visitor) {
-        return visitor.visit(this);
-    }
 }
 
 final class NumberNode(TypeNumber, TokenValue) : _ASTNode!TypeNumber {
@@ -326,10 +349,6 @@ final class NumberNode(TypeNumber, TokenValue) : _ASTNode!TypeNumber {
     this(Token token){
         this.token = token;
         this.value = token.value.get!TypeNumber;
-    }
-
-    TypeNumber accept(NodeVisitor!TypeNumber visitor) {
-        return visitor.visit(this);
     }
 }
 
@@ -346,10 +365,6 @@ final class UnaryOpNode(TypeNumber, TokenValue) : _ASTNode!TypeNumber {
         this.token = op;
         this.exprNode = exprNode;
     }
-
-    TypeNumber accept(NodeVisitor!TypeNumber visitor) {
-        return visitor.visit(this);
-    }
 }
 
 final class Parser(TypeNumber, TokenValue) {
@@ -365,7 +380,7 @@ final class Parser(TypeNumber, TokenValue) {
     }
 
     void error(){
-        throw new Exception("Invalid syntax");
+        throw new ParserException("Invalid syntax");
     }
 
     void eat(TokenType tokenType){
@@ -417,7 +432,7 @@ final class Parser(TypeNumber, TokenValue) {
                     eat(TokenType.RPAREN);
                     return new BinaryOpNode!(TypeNumber, TokenValue)(leftNode, token, rightNode);
                 } else {
-                    throw new Exception("Unexpected token!");
+                    throw new ParserException("Unexpected token: '" ~ token.value.to!string ~ "' in position " ~ lexer.pos.to!string);
                 }
         }
     }
@@ -459,16 +474,13 @@ final class Parser(TypeNumber, TokenValue) {
         return node;
     }
 
-
     ASTNode parse(){
         return expr();
     }
 }
 
 interface NodeVisitor(TypeNumber) {
-
     alias ASTNode = _ASTNode!TypeNumber;
-
     TypeNumber visit(ASTNode node);
 }
 
@@ -498,7 +510,7 @@ final class Interpreter(TypeNumber, TokenValue) : NodeVisitor!TypeNumber {
         // Handle other node types if needed
         else {
             // Handle the case when the node is of an unknown type
-            throw new Exception("Unsupported node type");
+            throw new InterpreterException("Unsupported node type. The operation requested is not supported.");
         }
     }
 
@@ -525,7 +537,7 @@ private:
             case TokenType.POW:
                 return pow(visit(node.left), visit(node.right));
             default:
-                throw new Exception("Unsupported binary operator");
+                throw new InterpreterException("Unsupported binary operator: " ~ node.op.value.to!string);
         }
     }
 
@@ -565,7 +577,7 @@ private:
             case TokenType.ACOS:
                 return acos(visit(node.exprNode));
             default:
-                throw new Exception("Unsupported unary operator");
+                throw new InterpreterException("Unsupported unary operator: " ~ node.op.value.to!string);
         }
     }
 
@@ -676,4 +688,34 @@ static foreach (T; FloatingPoints) {
             writeln(assertMsg);
         }
     }
+}
+
+// unittest for Exceptions
+unittest {
+    import std.exception : assertThrown;
+    
+    // Test invalid expression
+    assertThrown!ParserException({
+        auto evaluator = new Eval!double("2 + * 3");
+    });
+
+    // Test undefined function (should throw a LexicalException for now)
+    assertThrown!LexicalException({
+        auto evaluator = new Eval!double("unknown(5)");
+    });
+
+    // Test mismatched parentheses
+    assertThrown!ParserException({
+        auto evaluator = new Eval!double("(2 + 3");
+    });
+
+    // Test invalid characters
+    assertThrown!LexicalException({
+        auto evaluator = new Eval!double("2 # 3");
+    });
+
+    // Test empty expression
+    assertThrown!ParserException({
+        auto evaluator = new Eval!double("");
+    });
 }
