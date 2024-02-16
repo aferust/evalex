@@ -1,10 +1,6 @@
 # EvalEx
 A small library for evaluating mathematical expressions in strings.
 
-## TODO:
-- better error reporting for syntax errors
-- Improve catching exceptions.
-
 ## Examples:
 ```d
     import std.stdio;
