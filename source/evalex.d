@@ -16,13 +16,13 @@ private
     static LexicalException emptyInputText;
     static ParserException invalidSyntax;
     static InterpreterException unsupportedOperation;
-}
 
-version(EvalexBasicExceptions){
-    static LexicalException invalidCharacter;
-    static ParserException unexpectedToken;
-    static InterpreterException unsupportedBinaryOperator;
-    static InterpreterException unsupportedUnaryOperator;
+    version(EvalexBasicExceptions){
+        static LexicalException invalidCharacter;
+        static ParserException unexpectedToken;
+        static InterpreterException unsupportedBinaryOperator;
+        static InterpreterException unsupportedUnaryOperator;
+    }
 }
 
 static this(){
