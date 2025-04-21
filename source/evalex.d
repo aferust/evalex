@@ -61,29 +61,6 @@ if (isFloatingPoint!TypeNumber) {
             throw emptyInputText;
         }
 
-        // If the expression is a single character, try to convert it directly to a number
-        immutable dstring[] singleCharButNotDigit = ["p", "i", "s", "c", "t", "a", "l"];
-        if (expression.length == 1) {
-            if(expression == "e"){
-                return E;
-            } else if (expression == "π"){
-                return PI;
-            } else if (singleCharButNotDigit[].canFind(expression)){
-                throw invalidSyntax;
-            } else if (expression[0].isDigit) {
-                try {
-                    auto val = expression.to!TypeNumber;
-                    return val;
-                } catch (Exception e) {
-                    throw invalidSyntax;
-                }
-            } else if (expression[0] == '-') {
-                return -0.0; // Interpret single '-' as negative zero
-            } else {
-                throw invalidSyntax;
-            }
-        }
-
         lexer.reset(expression);
         parser.reset();
         return interpreter.interpret();
@@ -330,17 +307,31 @@ final class Lexer(TypeNumber, TokenValue) {
                         version(LOGGER) writeln_log("Parsed token: e");
                         advance();
                         return Token(TokenType.EULER, TokenValue("e"));
-                    } else if (text[pos+1..$].startsWith("xp2")) {
+                    } 
+                    
+                    // Check for "exp2"
+                    if (text[pos+1..$].startsWith("xp2")) {
+                        if (pos + 4 < text.length && 
+                            !(text[pos+4].isWhite || text[pos+4] == '(')) {
+                            error();
+                        }
                         version(LOGGER) writeln_log("Parsed token: exp2");
                         advance(4);
                         return Token(TokenType.EXP2NAMED, TokenValue("exp2"));
-                    } else if (text[pos+1..$].startsWith("xp")) {
+                    }
+
+                    // Check for "exp"
+                    if (text[pos+1..$].startsWith("xp")) {
+                        if (pos + 3 < text.length && 
+                            !(text[pos+3].isWhite || text[pos+3] == '(')) {
+                            error();
+                        }
                         version(LOGGER) writeln_log("Parsed token: exp");
                         advance(3);
                         return Token(TokenType.EXPNAMED, TokenValue("exp"));
-                    } else {
-                        error();
                     }
+
+                    error();
                     break;
                 case 's':
                     if (pos + 1 >= text.length) {
@@ -843,6 +834,26 @@ static foreach (T; FloatingPoints) {
             writeln(assertMsg);
         }
     }
+}
+
+// unittest for recent bug fixes
+unittest {
+    import std.exception : assertThrown;
+    
+    auto evaluator = new Eval!double();
+
+    // Test token boundary cases
+    assertThrown!LexicalException(evaluator.evaluate("epi"));      // Invalid character - lexer error
+    assertThrown!LexicalException(evaluator.evaluate("exp3"));     // Invalid exp token - lexer error
+    assertThrown!LexicalException(evaluator.evaluate("pie"));      // Invalid pi token - lexer error
+    assertThrown!LexicalException(evaluator.evaluate("pix"));      // Invalid token - lexer error
+    assertThrown!LexicalException(evaluator.evaluate("power"));    // Invalid pow token - lexer error
+    
+    // Test incomplete function names
+    assertThrown!LexicalException(evaluator.evaluate("si"));       // Incomplete sin - lexer error
+    assertThrown!LexicalException(evaluator.evaluate("co"));       // Incomplete cos - lexer error
+    assertThrown!LexicalException(evaluator.evaluate("ta"));       // Incomplete tan - lexer error
+    assertThrown!LexicalException(evaluator.evaluate("l"));        // Incomplete log - lexer error
 }
 
 // unittest for Exceptions
