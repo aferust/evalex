@@ -13,19 +13,32 @@ import std.math;
 
 final class Eval(TypeNumber)
 if (isFloatingPoint!TypeNumber) {
-    TypeNumber result;
 
     alias TokenValue = VariantN!(maxSize!(TypeNumber, dstring));
 
-    this(dstring expression){
-        auto lexer = new Lexer!(TypeNumber, TokenValue)(expression);
-        auto parser = new Parser!(TypeNumber, TokenValue)(lexer);
-        auto interpreter = new Interpreter!(TypeNumber, TokenValue)(parser);
-        result = interpreter.interpret();
+    private Lexer!(TypeNumber, TokenValue) lexer;
+    private Parser!(TypeNumber, TokenValue) parser;
+    private Interpreter!(TypeNumber, TokenValue) interpreter;
+
+    this(){
+        lexer = new Lexer!(TypeNumber, TokenValue)();
+        parser = new Parser!(TypeNumber, TokenValue)(lexer);
+        interpreter = new Interpreter!(TypeNumber, TokenValue)(parser);
+
     }
 
-    this(string expression){
-        this(expression.to!dstring);
+    TypeNumber evaluate(dstring expression){
+        if (expression.empty) {
+            throw new LexicalException("Empty input text");
+        }
+
+        lexer.reset(expression);
+        parser.reset();
+        return interpreter.interpret();
+    }
+
+    TypeNumber evaluate(string expression){
+        return evaluate(expression.to!dstring);
     }
 }
 
@@ -127,12 +140,23 @@ final class Lexer(TypeNumber, TokenValue) {
     size_t pos;
     Nullable!dchar currentChar;
 
-    this(dstring text){
+
+    void reset(dstring text){
+        this.text = text;
+        pos = 0;
+        currentChar = text[pos];
+    }
+
+    this(){
+    }
+
+    void setText(dstring text){
         if (text.empty) {
             throw new LexicalException("Empty input text");
         }
 
         this.text = text;
+        pos = 0;
         currentChar = text[pos];
     }
 
@@ -374,9 +398,12 @@ final class Parser(TypeNumber, TokenValue) {
     Lexer!(TypeNumber, TokenValue) lexer;
     Token currentToken;
 
+    void reset(){
+        this.currentToken = this.lexer.getNextToken();
+    }
+
     this(Lexer!(TypeNumber, TokenValue) lexer){
         this.lexer = lexer;
-        this.currentToken = this.lexer.getNextToken();
     }
 
     void error(){
@@ -588,9 +615,9 @@ private:
 void main(){
     string text = "sin(0.5)*2^3-5*4";
         
-    auto evaluator = new Eval!double(text);
+    auto evaluator = new Eval!double();
 
-    auto result = evaluator.result;
+    auto result = evaluator.evaluate(text);
 
     writeln(result);
 }
@@ -600,6 +627,8 @@ void main(){
 
 void main(){
     string text;
+    auto evaluator = new Eval!double();
+
     while(true){
         try{
             write("calc> ");
@@ -611,8 +640,7 @@ void main(){
             continue;
     
         try {
-            auto evaluator = new Eval!double(text);
-            auto result = evaluator.result;
+            auto result = evaluator.evaluate(text);
             writeln(result);
         } catch (Exception e) {
             writeln("Error: ", e.msg);
@@ -674,13 +702,13 @@ alias FloatingPoints = AliasSeq!(real, double, float);
 
 static foreach (T; FloatingPoints) {
     unittest {
+        auto evaluator = new Eval!T();
+
         foreach (testCase; testCases!T()) {
             auto expression = testCase[0];
             auto expected = testCase[1];
 
-            auto evaluator = new Eval!T(expression);
-
-            auto result = evaluator.result;
+            auto result = evaluator.evaluate(expression);
 
             // Test that the evaluated result matches the expected result
             string assertMsg = "Type: " ~ T.stringof ~ ", Expression: " ~ expression ~ ", Expected: " ~ expected.to!string ~ ", Got: " ~ result.to!string;
@@ -696,26 +724,31 @@ unittest {
     
     // Test invalid expression
     assertThrown!ParserException({
-        auto evaluator = new Eval!double("2 + * 3");
+        auto evaluator = new Eval!double();
+        evaluator.evaluate("2 + * 3");
     }());
 
     // Test undefined function (should throw a LexicalException for now)
     assertThrown!LexicalException({
-        auto evaluator = new Eval!double("unknown(5)");
+        auto evaluator = new Eval!double();
+        evaluator.evaluate("unknown(5)");
     }());
 
     // Test mismatched parentheses
     assertThrown!ParserException({
-        auto evaluator = new Eval!double("(2 + 3");
+        auto evaluator = new Eval!double();
+        evaluator.evaluate("(2 + 3");
     }());
 
     // Test invalid characters
     assertThrown!LexicalException({
-        auto evaluator = new Eval!double("2 # 3");
+        auto evaluator = new Eval!double();
+        evaluator.evaluate("2 # 3");
     }());
 
     // Test empty expression
     assertThrown!LexicalException({
-        auto evaluator = new Eval!double("");
+        auto evaluator = new Eval!double();
+        evaluator.evaluate("");
     }());
 }

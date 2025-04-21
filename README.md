@@ -8,15 +8,15 @@ A small library for evaluating mathematical expressions in strings.
     
     string text = "sin(0.5)*2^3-5*4";
         
-    auto evaluator = new Eval!double(text);
+    auto evaluator = new Eval!double();
 
-    auto result = evaluator.result;
+    auto result = evaluator.evaluate(text);
 
     writeln(result);
 
 ```
 
-// Refer to the unit tests for capabilities
+- Refer to the unit tests for capabilities
 ```d
 import std.typecons;
 import std.math;
@@ -70,13 +70,13 @@ alias FloatingPoints = AliasSeq!(real, double, float);
 
 static foreach (T; FloatingPoints) {
     unittest {
+        auto evaluator = new Eval!T();
+
         foreach (testCase; testCases!T()) {
             auto expression = testCase[0];
             auto expected = testCase[1];
 
-            auto evaluator = new Eval!T(expression);
-
-            auto result = evaluator.result;
+            auto result = evaluator.evaluate(expression);
 
             // Test that the evaluated result matches the expected result
             string assertMsg = "Type: " ~ T.stringof ~ ", Expression: " ~ expression ~ ", Expected: " ~ expected.to!string ~ ", Got: " ~ result.to!string;
@@ -92,27 +92,32 @@ unittest {
     
     // Test invalid expression
     assertThrown!ParserException({
-        auto evaluator = new Eval!double("2 + * 3");
+        auto evaluator = new Eval!double();
+        evaluator.evaluate("2 + * 3");
     }());
 
     // Test undefined function (should throw a LexicalException for now)
     assertThrown!LexicalException({
-        auto evaluator = new Eval!double("unknown(5)");
+        auto evaluator = new Eval!double();
+        evaluator.evaluate("unknown(5)");
     }());
 
     // Test mismatched parentheses
     assertThrown!ParserException({
-        auto evaluator = new Eval!double("(2 + 3");
+        auto evaluator = new Eval!double();
+        evaluator.evaluate("(2 + 3");
     }());
 
     // Test invalid characters
     assertThrown!LexicalException({
-        auto evaluator = new Eval!double("2 # 3");
+        auto evaluator = new Eval!double();
+        evaluator.evaluate("2 # 3");
     }());
 
     // Test empty expression
     assertThrown!LexicalException({
-        auto evaluator = new Eval!double("");
+        auto evaluator = new Eval!double();
+        evaluator.evaluate("");
     }());
 }
 ```
