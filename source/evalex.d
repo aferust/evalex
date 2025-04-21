@@ -16,6 +16,7 @@ private
     static LexicalException emptyInputText;
     static ParserException invalidSyntax;
     static InterpreterException unsupportedOperation;
+    static EvalException unknownException;
 
     version(EvalexBasicExceptions){
         static LexicalException invalidCharacter;
@@ -29,6 +30,7 @@ static this(){
     emptyInputText = new LexicalException("Empty input text");
     invalidSyntax = new ParserException("Invalid syntax");
     unsupportedOperation = new InterpreterException("Unsupported operation requested");
+    unknownException = new EvalException("Unknown exception occurred");
 
     version(EvalexBasicExceptions){
         invalidCharacter = new LexicalException("Invalid character in expression");
@@ -54,9 +56,32 @@ if (isFloatingPoint!TypeNumber) {
 
     }
 
-    TypeNumber evaluate(dstring expression){
+    TypeNumber evaluate(dstring expression) {
         if (expression.empty) {
             throw emptyInputText;
+        }
+
+        // If the expression is a single character, try to convert it directly to a number
+        immutable dstring[] singleCharButNotDigit = ["p", "i", "s", "c", "t", "a", "l"];
+        if (expression.length == 1) {
+            if(expression == "e"){
+                return E;
+            } else if (expression == "π"){
+                return PI;
+            } else if (singleCharButNotDigit[].canFind(expression)){
+                throw invalidSyntax;
+            } else if (expression[0].isDigit) {
+                try {
+                    auto val = expression.to!TypeNumber;
+                    return val;
+                } catch (Exception e) {
+                    throw invalidSyntax;
+                }
+            } else if (expression[0] == '-') {
+                return -0.0; // Interpret single '-' as negative zero
+            } else {
+                throw invalidSyntax;
+            }
         }
 
         lexer.reset(expression);
@@ -238,19 +263,32 @@ final class Lexer(TypeNumber, TokenValue) {
 
             // Handle other tokens
             switch (currentChar.get) {
-                // Add debug print for each token case
                 case 'π':
                     advance(1);
                     return Token(TokenType.PI, TokenValue("pi"));
-                    break;
                 case 'p':
+                    if (pos + 1 >= text.length) {
+                        error();
+                    }
                     if (text[pos+1] == 'i') {
-                        advance(2);
-                        return Token(TokenType.PI, TokenValue("pi"));
+                        // Check if this is exactly "pi" and not something like "pie"
+                        if (pos + 2 >= text.length || text[pos+2].isWhite || text[pos+2] == ')'
+                            || text[pos+2] == '*' || text[pos+2] == '/' || text[pos+2] == '+'
+                            || text[pos+2] == '-' || text[pos+2] == '^' || text[pos+2] == ',') {
+                            advance(2);
+                            return Token(TokenType.PI, TokenValue("pi"));
+                        }
+                        error();
                     } else if (text[pos+1..$].startsWith("ow")) {
-                        version(LOGGER) writeln_log("Parsed token: pow");
-                        advance(3);
-                        return Token(TokenType.POW, TokenValue("pow"));
+                        // Check if this is exactly "pow" and not something like "power"
+                        if (pos + 3 >= text.length || text[pos+3] == '(') {
+                            version(LOGGER) writeln_log("Parsed token: pow");
+                            advance(3);
+                            return Token(TokenType.POW, TokenValue("pow"));
+                        }
+                        error();
+                    } else {
+                        error();
                     }
                     break;
                 case '+':
@@ -286,21 +324,28 @@ final class Lexer(TypeNumber, TokenValue) {
                     advance();
                     return Token(TokenType.EXP, TokenValue("^"));
                 case 'e':
-                    if (text[pos+1..$].startsWith("xp2")) {
+                    if (pos + 1 >= text.length || text[pos+1].isWhite || text[pos+1] == ')'
+                        || text[pos+1] == '*' || text[pos+1] == '/' || text[pos+1] == '+'
+                        || text[pos+1] == '-' || text[pos+1] == '^' || text[pos+1] == ',') {
+                        version(LOGGER) writeln_log("Parsed token: e");
+                        advance();
+                        return Token(TokenType.EULER, TokenValue("e"));
+                    } else if (text[pos+1..$].startsWith("xp2")) {
                         version(LOGGER) writeln_log("Parsed token: exp2");
                         advance(4);
                         return Token(TokenType.EXP2NAMED, TokenValue("exp2"));
-                    }else if (text[pos+1..$].startsWith("xp")) {
+                    } else if (text[pos+1..$].startsWith("xp")) {
                         version(LOGGER) writeln_log("Parsed token: exp");
                         advance(3);
                         return Token(TokenType.EXPNAMED, TokenValue("exp"));
                     } else {
-                        version(LOGGER) writeln_log("Parsed token: e");
-                        advance();
-                        return Token(TokenType.EULER, TokenValue("e"));
+                        error();
                     }
                     break;
                 case 's':
+                    if (pos + 1 >= text.length) {
+                        error();
+                    }
                     if (text[pos+1..$].startsWith("in")) {
                         version(LOGGER) writeln_log("Parsed token: sin");
                         advance(3);
@@ -309,23 +354,38 @@ final class Lexer(TypeNumber, TokenValue) {
                         version(LOGGER) writeln_log("Parsed token: sqrt");
                         advance(4);
                         return Token(TokenType.SQRT, TokenValue("sqrt"));
+                    } else {
+                        error();
                     }
                     break;
                 case 'c':
+                    if (pos + 1 >= text.length) {
+                        error();
+                    }
                     if (text[pos+1..$].startsWith("os")) {
                         version(LOGGER) writeln_log("Parsed token: cos");
                         advance(3);
                         return Token(TokenType.COS, TokenValue("cos"));
+                    } else {
+                        error();
                     }
                     break;
                 case 't':
+                    if (pos + 1 >= text.length) {
+                        error();
+                    }
                     if (text[pos+1..$].startsWith("an")) {
                         version(LOGGER) writeln_log("Parsed token: tan");
                         advance(3);
                         return Token(TokenType.TAN, TokenValue("tan"));
+                    } else {
+                        error();
                     }
                     break;
                 case 'a':
+                    if (pos + 1 >= text.length) {
+                        error();
+                    }
                     if (text[pos+1..$].startsWith("tan2")) {
                         version(LOGGER) writeln_log("Parsed token: atan2");
                         advance(5);
@@ -342,9 +402,14 @@ final class Lexer(TypeNumber, TokenValue) {
                         version(LOGGER) writeln_log("Parsed token: asin");
                         advance(4);
                         return Token(TokenType.ASIN, TokenValue("asin"));
+                    } else {
+                        error();
                     }
                     break;
                 case 'l':
+                    if (pos + 1 >= text.length) {
+                        error();
+                    }
                     if (text[pos+1..$].startsWith("og10")) {
                         version(LOGGER) writeln_log("Parsed token: log10");
                         advance(5);
@@ -357,6 +422,8 @@ final class Lexer(TypeNumber, TokenValue) {
                         version(LOGGER) writeln_log("Parsed token: log");
                         advance(3);
                         return Token(TokenType.LOG, TokenValue("log"));
+                    } else {
+                        error();
                     }
                     break;
                 default:
@@ -426,7 +493,17 @@ final class Parser(TypeNumber, TokenValue) {
     Token currentToken;
 
     void reset(){
-        this.currentToken = this.lexer.getNextToken();
+        try {
+            this.currentToken = this.lexer.getNextToken();
+        } catch(LexicalException e) {
+            throw e; // Rethrow lexical exceptions directly
+        } catch(Exception e) {
+            version(EvalexBasicExceptions) {
+                throw unknownException;
+            } else {
+                throw new EvalException("Parser error: " ~ e.msg);
+            }
+        }
     }
 
     this(Lexer!(TypeNumber, TokenValue) lexer){
@@ -438,10 +515,21 @@ final class Parser(TypeNumber, TokenValue) {
     }
 
     void eat(TokenType tokenType){
-        if (currentToken.type == tokenType)
-            currentToken = lexer.getNextToken();
-        else
+        if (currentToken.type == tokenType) {
+            try {
+                currentToken = lexer.getNextToken();
+            } catch(LexicalException e) {
+                throw e; // Rethrow lexical exceptions directly
+            } catch(Exception e) {
+                version(EvalexBasicExceptions) {
+                    throw unknownException;
+                } else {
+                    throw new EvalException("Parser error while eating token: " ~ e.msg);
+                }
+            }
+        } else {
             error();
+        }
     }
 
     ASTNode factor() {
