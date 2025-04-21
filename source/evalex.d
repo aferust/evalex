@@ -118,16 +118,11 @@ immutable TokenType[6] exponentialUnary = [TokenType.SQRT, TokenType.EXPNAMED, T
 immutable TokenType[2] miscBinaryWithSep = [TokenType.ATAN2, TokenType.POW];
 
 // Define the Token class
-final class _Token(TokenValue) {
+struct _Token(TokenValue) {
     TokenType type;
     TokenValue value;
 
-    this(TokenType type, TokenValue value){
-        this.type = type;
-        this.value = value;
-    }
-
-    override string toString(){
+    string toString(){
         return format("Token(%s, %s)", type.stringof, value.to!string);
     }
 }
@@ -204,7 +199,7 @@ final class Lexer(TypeNumber, TokenValue) {
 
             // Check if currentChar is the beginning of a number
             if (currentChar.get.isDigit) {
-                auto token = new Token(TokenType.NUMBER, TokenValue(getValue()));
+                auto token = Token(TokenType.NUMBER, TokenValue(getValue()));
                 version(LOGGER) writeln_log("Parsed token: ", token);
                 return token;
             }
@@ -214,122 +209,122 @@ final class Lexer(TypeNumber, TokenValue) {
                 // Add debug print for each token case
                 case 'π':
                     advance(1);
-                    return new Token(TokenType.PI, TokenValue("pi"));
+                    return Token(TokenType.PI, TokenValue("pi"));
                     break;
                 case 'p':
                     if (text[pos+1] == 'i') {
                         advance(2);
-                        return new Token(TokenType.PI, TokenValue("pi"));
+                        return Token(TokenType.PI, TokenValue("pi"));
                     } else if (text[pos+1..$].startsWith("ow")) {
                         version(LOGGER) writeln_log("Parsed token: pow");
                         advance(3);
-                        return new Token(TokenType.POW, TokenValue("pow"));
+                        return Token(TokenType.POW, TokenValue("pow"));
                     }
                     break;
                 case '+':
                     version(LOGGER) writeln_log("Parsed token: PLUS");
                     advance();
-                    return new Token(TokenType.PLUS, TokenValue("+"));
+                    return Token(TokenType.PLUS, TokenValue("+"));
                 case '-':
                     version(LOGGER) writeln_log("Parsed token: MINUS");
                     advance();
-                    return new Token(TokenType.MINUS, TokenValue("-"));
+                    return Token(TokenType.MINUS, TokenValue("-"));
                 case ',':
                     version(LOGGER) writeln_log("Parsed token: PARAMSEP");
                     advance();
-                    return new Token(TokenType.PARAMSEP, TokenValue(","));
+                    return Token(TokenType.PARAMSEP, TokenValue(","));
                 case '*':
                     version(LOGGER) writeln_log("Parsed token: MUL");
                     advance();
-                    return new Token(TokenType.MUL, TokenValue("*"));
+                    return Token(TokenType.MUL, TokenValue("*"));
                 case '/':
                     version(LOGGER) writeln_log("Parsed token: DIV");
                     advance();
-                    return new Token(TokenType.DIV, TokenValue("/"));
+                    return Token(TokenType.DIV, TokenValue("/"));
                 case '(':
                     version(LOGGER) writeln_log("Parsed token: LPAREN");
                     advance();
-                    return new Token(TokenType.LPAREN, TokenValue("("));
+                    return Token(TokenType.LPAREN, TokenValue("("));
                 case ')':
                     version(LOGGER) writeln_log("Parsed token: RPAREN");
                     advance();
-                    return new Token(TokenType.RPAREN, TokenValue(")"));
+                    return Token(TokenType.RPAREN, TokenValue(")"));
                 case '^':
                     version(LOGGER) writeln_log("Parsed token: EXP");
                     advance();
-                    return new Token(TokenType.EXP, TokenValue("^"));
+                    return Token(TokenType.EXP, TokenValue("^"));
                 case 'e':
                     if (text[pos+1..$].startsWith("xp2")) {
                         version(LOGGER) writeln_log("Parsed token: exp2");
                         advance(4);
-                        return new Token(TokenType.EXP2NAMED, TokenValue("exp2"));
+                        return Token(TokenType.EXP2NAMED, TokenValue("exp2"));
                     }else if (text[pos+1..$].startsWith("xp")) {
                         version(LOGGER) writeln_log("Parsed token: exp");
                         advance(3);
-                        return new Token(TokenType.EXPNAMED, TokenValue("exp"));
+                        return Token(TokenType.EXPNAMED, TokenValue("exp"));
                     } else {
                         version(LOGGER) writeln_log("Parsed token: e");
                         advance();
-                        return new Token(TokenType.EULER, TokenValue("e"));
+                        return Token(TokenType.EULER, TokenValue("e"));
                     }
                     break;
                 case 's':
                     if (text[pos+1..$].startsWith("in")) {
                         version(LOGGER) writeln_log("Parsed token: sin");
                         advance(3);
-                        return new Token(TokenType.SIN, TokenValue("sin"));
+                        return Token(TokenType.SIN, TokenValue("sin"));
                     } else if (text[pos+1..$].startsWith("qrt")) {
                         version(LOGGER) writeln_log("Parsed token: sqrt");
                         advance(4);
-                        return new Token(TokenType.SQRT, TokenValue("sqrt"));
+                        return Token(TokenType.SQRT, TokenValue("sqrt"));
                     }
                     break;
                 case 'c':
                     if (text[pos+1..$].startsWith("os")) {
                         version(LOGGER) writeln_log("Parsed token: cos");
                         advance(3);
-                        return new Token(TokenType.COS, TokenValue("cos"));
+                        return Token(TokenType.COS, TokenValue("cos"));
                     }
                     break;
                 case 't':
                     if (text[pos+1..$].startsWith("an")) {
                         version(LOGGER) writeln_log("Parsed token: tan");
                         advance(3);
-                        return new Token(TokenType.TAN, TokenValue("tan"));
+                        return Token(TokenType.TAN, TokenValue("tan"));
                     }
                     break;
                 case 'a':
                     if (text[pos+1..$].startsWith("tan2")) {
                         version(LOGGER) writeln_log("Parsed token: atan2");
                         advance(5);
-                        return new Token(TokenType.ATAN2, TokenValue("atan2"));
+                        return Token(TokenType.ATAN2, TokenValue("atan2"));
                     } else if (text[pos+1..$].startsWith("tan")) {
                         version(LOGGER) writeln_log("Parsed token: atan");
                         advance(4);
-                        return new Token(TokenType.ATAN, TokenValue("atan"));
+                        return Token(TokenType.ATAN, TokenValue("atan"));
                     } else if (text[pos+1..$].startsWith("cos")) {
                         version(LOGGER) writeln_log("Parsed token: acos");
                         advance(4);
-                        return new Token(TokenType.ACOS, TokenValue("acos"));
+                        return Token(TokenType.ACOS, TokenValue("acos"));
                     } else if (text[pos+1..$].startsWith("sin")) {
                         version(LOGGER) writeln_log("Parsed token: asin");
                         advance(4);
-                        return new Token(TokenType.ASIN, TokenValue("asin"));
+                        return Token(TokenType.ASIN, TokenValue("asin"));
                     }
                     break;
                 case 'l':
                     if (text[pos+1..$].startsWith("og10")) {
                         version(LOGGER) writeln_log("Parsed token: log10");
                         advance(5);
-                        return new Token(TokenType.LOG10, TokenValue("log10"));
+                        return Token(TokenType.LOG10, TokenValue("log10"));
                     } else if (text[pos+1..$].startsWith("og2")) {
                         version(LOGGER) writeln_log("Parsed token: log2");
                         advance(4);
-                        return new Token(TokenType.LOG2, TokenValue("log2"));
+                        return Token(TokenType.LOG2, TokenValue("log2"));
                     } else if (text[pos+1..$].startsWith("og")) {
                         version(LOGGER) writeln_log("Parsed token: log");
                         advance(3);
-                        return new Token(TokenType.LOG, TokenValue("log"));
+                        return Token(TokenType.LOG, TokenValue("log"));
                     }
                     break;
                 default:
@@ -339,7 +334,7 @@ final class Lexer(TypeNumber, TokenValue) {
         
         // If currentChar is null, return EOF token
         version(LOGGER) writeln_log("Parsed token: EOF");
-        return new Token(TokenType.EOF, TokenValue(null));
+        return Token(TokenType.EOF, TokenValue(null));
     }
 }
 
@@ -431,10 +426,10 @@ final class Parser(TypeNumber, TokenValue) {
                 return new NumberNode!(TypeNumber, TokenValue)(token);
             case TokenType.PI:
                 eat(TokenType.PI);
-                return new NumberNode!(TypeNumber, TokenValue)(new Token(TokenType.NUMBER, TokenValue(PI)));
+                return new NumberNode!(TypeNumber, TokenValue)(Token(TokenType.NUMBER, TokenValue(PI)));
             case TokenType.EULER:
                 eat(TokenType.EULER);
-                return new NumberNode!(TypeNumber, TokenValue)(new Token(TokenType.NUMBER, TokenValue(E)));
+                return new NumberNode!(TypeNumber, TokenValue)(Token(TokenType.NUMBER, TokenValue(E)));
             case TokenType.LPAREN:
                 eat(TokenType.LPAREN);
                 auto node = expr();
