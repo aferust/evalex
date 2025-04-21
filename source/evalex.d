@@ -11,6 +11,33 @@ import std.algorithm.searching : canFind;
 import std.algorithm : startsWith;
 import std.math;
 
+private
+{
+    static LexicalException emptyInputText;
+    static ParserException invalidSyntax;
+    static InterpreterException unsupportedOperation;
+}
+
+version(EvalexBasicExceptions){
+    static LexicalException invalidCharacter;
+    static ParserException unexpectedToken;
+    static InterpreterException unsupportedBinaryOperator;
+    static InterpreterException unsupportedUnaryOperator;
+}
+
+static this(){
+    emptyInputText = new LexicalException("Empty input text");
+    invalidSyntax = new ParserException("Invalid syntax");
+    unsupportedOperation = new InterpreterException("Unsupported operation requested");
+
+    version(EvalexBasicExceptions){
+        invalidCharacter = new LexicalException("Invalid character in expression");
+        unexpectedToken = new ParserException("Unexpected token in expression");
+        unsupportedBinaryOperator = new InterpreterException("Unsupported binary operator in expression");
+        unsupportedUnaryOperator = new InterpreterException("Unsupported unary operator in expression");
+    }
+}
+
 final class Eval(TypeNumber)
 if (isFloatingPoint!TypeNumber) {
 
@@ -29,7 +56,7 @@ if (isFloatingPoint!TypeNumber) {
 
     TypeNumber evaluate(dstring expression){
         if (expression.empty) {
-            throw new LexicalException("Empty input text");
+            throw emptyInputText;
         }
 
         lexer.reset(expression);
@@ -147,7 +174,7 @@ final class Lexer(TypeNumber, TokenValue) {
 
     void setText(dstring text){
         if (text.empty) {
-            throw new LexicalException("Empty input text");
+            throw emptyInputText;
         }
 
         this.text = text;
@@ -156,7 +183,12 @@ final class Lexer(TypeNumber, TokenValue) {
     }
 
     void error(){
-        throw new LexicalException("Invalid character '" ~ text[pos].to!string ~ "' in the position " ~ pos.to!string);
+        version(EvalexBasicExceptions){
+            throw invalidCharacter;
+        } else {
+            throw new LexicalException("Invalid character '" ~ text[pos].to!string ~ "' in the position " ~ pos.to!string);
+        }
+        
     }
 
     void advance(size_t step = 1) {
@@ -402,7 +434,7 @@ final class Parser(TypeNumber, TokenValue) {
     }
 
     void error(){
-        throw new ParserException("Invalid syntax");
+        throw invalidSyntax;
     }
 
     void eat(TokenType tokenType){
@@ -454,7 +486,11 @@ final class Parser(TypeNumber, TokenValue) {
                     eat(TokenType.RPAREN);
                     return new BinaryOpNode!(TypeNumber, TokenValue)(leftNode, token, rightNode);
                 } else {
-                    throw new ParserException("Unexpected token: '" ~ token.value.to!string ~ "' in position " ~ lexer.pos.to!string);
+                    version(EvalexBasicExceptions){
+                        throw unexpectedToken;
+                    } else {
+                        throw new ParserException("Unexpected token: '" ~ token.value.to!string ~ "' in position " ~ lexer.pos.to!string);
+                    }
                 }
         }
     }
@@ -532,7 +568,7 @@ final class Interpreter(TypeNumber, TokenValue) : NodeVisitor!TypeNumber {
         // Handle other node types if needed
         else {
             // Handle the case when the node is of an unknown type
-            throw new InterpreterException("Unsupported node type. The operation requested is not supported.");
+            throw unsupportedOperation;
         }
     }
 
@@ -559,7 +595,11 @@ private:
             case TokenType.POW:
                 return pow(visit(node.left), visit(node.right));
             default:
-                throw new InterpreterException("Unsupported binary operator: " ~ node.op.value.to!string);
+                version(EvalexBasicExceptions){
+                    throw unsupportedBinaryOperator;
+                } else {
+                    throw new InterpreterException("Unsupported binary operator: " ~ node.op.value.to!string);
+                }
         }
     }
 
@@ -599,7 +639,11 @@ private:
             case TokenType.ACOS:
                 return acos(visit(node.exprNode));
             default:
-                throw new InterpreterException("Unsupported unary operator: " ~ node.op.value.to!string);
+                version(EvalexBasicExceptions){
+                    throw unsupportedUnaryOperator;
+                } else {
+                    throw new InterpreterException("Unsupported unary operator: " ~ node.op.value.to!string);
+                }
         }
     }
 
