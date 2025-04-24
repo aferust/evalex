@@ -32,7 +32,7 @@ static this(){
     unsupportedOperation = new InterpreterException("Unsupported operation requested");
     unknownException = new EvalException("Unknown exception occurred");
 
-    version(EvalexBasicExceptions){
+    version(EvalexBasicExceptions){ // expected to be faster
         invalidCharacter = new LexicalException("Invalid character in expression");
         unexpectedToken = new ParserException("Unexpected token in expression");
         unsupportedBinaryOperator = new InterpreterException("Unsupported binary operator in expression");
@@ -843,17 +843,17 @@ unittest {
     auto evaluator = new Eval!double();
 
     // Test token boundary cases
-    assertThrown!LexicalException(evaluator.evaluate("epi"));      // Invalid character - lexer error
-    assertThrown!LexicalException(evaluator.evaluate("exp3"));     // Invalid exp token - lexer error
-    assertThrown!LexicalException(evaluator.evaluate("pie"));      // Invalid pi token - lexer error
-    assertThrown!LexicalException(evaluator.evaluate("pix"));      // Invalid token - lexer error
-    assertThrown!LexicalException(evaluator.evaluate("power"));    // Invalid pow token - lexer error
+    assertThrown!LexicalException({evaluator.evaluate("epi");}());      // Invalid character - lexer error
+    assertThrown!LexicalException({evaluator.evaluate("exp3");}());     // Invalid exp token - lexer error
+    assertThrown!LexicalException({evaluator.evaluate("pie");}());      // Invalid pi token - lexer error
+    assertThrown!LexicalException({evaluator.evaluate("pix");}());      // Invalid token - lexer error
+    assertThrown!LexicalException({evaluator.evaluate("power");}());    // Invalid pow token - lexer error
     
     // Test incomplete function names
-    assertThrown!LexicalException(evaluator.evaluate("si"));       // Incomplete sin - lexer error
-    assertThrown!LexicalException(evaluator.evaluate("co"));       // Incomplete cos - lexer error
-    assertThrown!LexicalException(evaluator.evaluate("ta"));       // Incomplete tan - lexer error
-    assertThrown!LexicalException(evaluator.evaluate("l"));        // Incomplete log - lexer error
+    assertThrown!LexicalException({evaluator.evaluate("si");}());       // Incomplete sin - lexer error
+    assertThrown!LexicalException({evaluator.evaluate("co");}());       // Incomplete cos - lexer error
+    assertThrown!LexicalException({evaluator.evaluate("ta");}());       // Incomplete tan - lexer error
+    assertThrown!LexicalException({evaluator.evaluate("l");}());        // Incomplete log - lexer error
 }
 
 // unittest for Exceptions
